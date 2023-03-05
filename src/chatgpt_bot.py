@@ -23,7 +23,7 @@ async def on_message(message):
         return
 
     if message.content.startswith('/gpt'):
-        msg = await message.reply("生成中...", mention_author=False)
+        msg = await message.reply("アーニャ考え中🤔...", mention_author=False)
         try:
             prompt = message.content[4::]
             if not prompt:
