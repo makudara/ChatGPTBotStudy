@@ -16,7 +16,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 ENV OPENAI_API_KEY=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
 
 # Discordのbotを起動するコマンドを定義
-CMD ["python", "chatgpt_bot.py"]
+CMD ["python", "src/chatgpt_bot.py"]
 
 # ホストマシンのファイルをコンテナにコピー
 COPY . .
