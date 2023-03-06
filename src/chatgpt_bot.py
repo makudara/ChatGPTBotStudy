@@ -8,7 +8,7 @@ intents.message_content = True
 client = discord.Client(intents=intents)
 token = os.environ['DISCORD_TOKEN']  #Discordのトークン
 openai.api_key = os.environ['OPENAI_API_KEY'] #APIキー
-model_engine = "gpt-3.5-turbo-0301"
+model_engine = "gpt-3.5-turbo"
 
 @client.event
 async def on_ready():
@@ -22,13 +22,13 @@ async def on_message(message):
     if message.author == client.user:
         return
 
-    if message.content.startswith('/gpt'):
+    if client.user in message.mentions:
         msg = await message.reply("アーニャ考え中🤔...", mention_author=False)
         try:
-            prompt = message.content[4::]
+            prompt = message.content
             if not prompt:
                 await msg.delete()
-                await message.channel.send("質問内容がありません")
+                await message.channel.send("なんかいえ。")
                 return
             completion = openai.ChatCompletion.create(
             model=model_engine,
@@ -57,6 +57,6 @@ async def on_message(message):
         except:
             import traceback
             traceback.print_exc()
-            await message.reply("エラーが発生しました", mention_author=False)
+            await message.reply("アーニャ失敗した😵‍💫", mention_author=False)
 
 client.run(token)
