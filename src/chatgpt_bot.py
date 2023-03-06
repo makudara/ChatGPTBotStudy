@@ -1,6 +1,15 @@
 import os
-import discord
+import re
+import asyncio
+import logging
+
 import openai
+import discord
+
+logger = logging.getLogger('discord')
+handler = logging.FileHandler(filename='discord.log', encoding='utf-8', mode='w')
+handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
+logger.addHandler(handler)
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -9,10 +18,23 @@ client = discord.Client(intents=intents)
 token = os.environ['DISCORD_TOKEN']  #Discordのトークン
 openai.api_key = os.environ['OPENAI_API_KEY'] #APIキー
 model_engine = "gpt-3.5-turbo"
+bot_name = 'AnyaGPT'
+
+async def get_memories(message):
+    messages = []
+    if type(message.channel) == discord.threads.Thread:
+        thread = message.channel
+        logger.info(thread.history)
+        async for msg in thread.history(limit=None):
+            mention_bots = [mention for mention in msg.mentions if mention.bot]
+            if mention_bots:
+                content = re.sub('<@[0-9]+>', '', msg.content)
+                messages.append(content)
+    return messages
 
 @client.event
 async def on_ready():
-    print(f'We have logged in as {client.user}')
+    logger.info(f'We have logged in as {client.user}')
 
 @client.event
 async def on_message(message):
@@ -26,6 +48,10 @@ async def on_message(message):
         msg = await message.reply("アーニャ考え中🤔...", mention_author=False)
         try:
             prompt = message.content
+            reply_chain = get_memories(message)
+            reply_chain = await asyncio.gather(reply_chain)
+            reply_chain = list(reply_chain)
+            logger.info(reply_chain)
             if not prompt:
                 await msg.delete()
                 await message.channel.send("なんかいえ。")
@@ -58,5 +84,6 @@ async def on_message(message):
             import traceback
             traceback.print_exc()
             await message.reply("アーニャ失敗した😵‍💫", mention_author=False)
+            exit()
 
 client.run(token)
