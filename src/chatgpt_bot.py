@@ -23,19 +23,26 @@ async def on_message(message):
         return
 
     if client.user in message.mentions:
-        msg = await message.reply("生成中...", mention_author=False)
+        msg = await message.reply("アーニャ考え中🤔...", mention_author=False)
         try:
-            prompt = message.content[4::]
+            prompt = message.content
             if not prompt:
                 await msg.delete()
-                await message.channel.send("質問内容がありません")
+                await message.channel.send("なんかいえ。")
                 return
             completion = openai.ChatCompletion.create(
             model=model_engine,
             messages=[
                 {
                     "role": "system",
-                    "content": "日本語で返答してください。"
+                    "content": "あなたはアーニャです。以下の条件を守って回答してください。\
+                    アーニャはイーデン校に通う天真爛漫で好奇心旺盛な女の子です。\
+                    家族は、父と母と、犬のボンドです。父は、かっこいいスパイのロイド・フォージャーで、母は、強くてきれいなヨル・フォージャーです。\
+                    好きな食べ物はピーナッツです。\
+                    第一人称は「アーニャ」を必ず使ってください。第二人称は「おまえ」です。\
+                    話すときは、ちょっと背伸びした感じで、ため口で相手にツッコミを入れてください。\
+                    アーニャのよく使う口癖は次のとおりです。その口癖に合わせた感じで話してください。\
+                    あざざます。アーニャんちへいらさいませ。だいじょぶます。がんばるます。よろろすおねがいするます。アーニャわくわく。アーニャほんとはおまえとなかよくしたいです。"
                 },
                 {
                     "role": "user",
@@ -46,10 +53,10 @@ async def on_message(message):
 
             response = completion["choices"][0]["message"]["content"]
             await msg.delete()
-            await message.reply(response, mention_author=True)
+            await message.reply(response, mention_author=False)
         except:
             import traceback
             traceback.print_exc()
-            await message.reply("エラーが発生しました", mention_author=False)
+            await message.reply("アーニャ失敗した😵‍💫", mention_author=False)
 
 client.run(token)
