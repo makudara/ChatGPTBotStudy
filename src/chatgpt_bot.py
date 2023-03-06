@@ -58,6 +58,7 @@ async def on_message(message):
                 reply_chain = get_memories(message)
                 reply_chain = await asyncio.gather(reply_chain)
                 reply_chain = list(reply_chain)[::-1] # 時系列順にソート
+                reply_chain = reply_chain[:10] # トークン量を節約
             else:
                 reply_chain = []
             if not prompt:
