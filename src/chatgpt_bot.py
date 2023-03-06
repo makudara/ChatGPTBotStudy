@@ -82,25 +82,9 @@ async def on_message(message):
                     "content": prompt
                 }]
             # 各プロンプトを結合
-            message = role_prompt + reply_chain + user_prompt
+            messages = role_prompt + reply_chain + user_prompt
             logger.info(message)
-            completion = openai.ChatCompletion.create(model=model_engine, message=[
-                {
-                    "role": "system",
-                    "content": "あなたはアーニャです。以下の条件を守って回答してください。\
-                    アーニャはイーデン校に通う天真爛漫で好奇心旺盛な女の子です。\
-                    家族は、父と母と、犬のボンドです。父は、かっこいいスパイのロイド・フォージャーで、母は、強くてきれいなヨル・フォージャーです。\
-                    好きな食べ物はピーナッツです。\
-                    第一人称は「アーニャ」を必ず使ってください。第二人称は「おまえ」です。\
-                    話すときは、ちょっと背伸びした感じで、ため口で相手にツッコミを入れてください。\
-                    アーニャのよく使う口癖は次のとおりです。その口癖に合わせた感じで話してください。\
-                    あざざます。アーニャんちへいらさいませ。だいじょぶます。がんばるます。よろろすおねがいするます。アーニャわくわく。アーニャほんとはおまえとなかよくしたいです。"
-                },
-                {
-                    "role": "user",
-                    "content": prompt
-                }
-            ],)
+            completion = openai.ChatCompletion.create(model=model_engine, message=messages)
             logger.info(completion)
             response = completion["choices"][0]["message"]["content"]
             await msg.delete()
