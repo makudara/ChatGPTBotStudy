@@ -20,16 +20,22 @@ openai.api_key = os.environ['OPENAI_API_KEY'] #APIキー
 model_engine = "gpt-3.5-turbo"
 bot_name = 'AnyaGPT'
 
+# Todo: LangChain等を使ってトークンを節約できるかも？
+# ref: https://note.com/npaka/n/n155e66a263a2
 async def get_memories(message):
     messages = []
-    if type(message.channel) == discord.threads.Thread:
-        thread = message.channel
-        logger.info(thread.history)
-        async for msg in thread.history(limit=None):
-            mention_bots = [mention for mention in msg.mentions if mention.bot]
-            if mention_bots:
-                content = re.sub('<@[0-9]+>', '', msg.content)
-                messages.append(content)
+    thread = message.channel
+    async for msg in thread.history(limit=None):
+        mention_bots = [mention for mention in msg.mentions if mention.bot]
+        # Chat_GPTの応答を記憶として追加
+        if msg.author.bot:
+            messages.append({'role': 'assistant',
+                                'content': msg.content})
+        # UserのBot向けの会話を記憶として追加（要らないかも？）
+        elif mention_bots:
+            content = re.sub('<@[0-9]+>', '', msg.content)
+            messages.append({'role': 'user',
+                                'content': content})
     return messages
 
 @client.event
@@ -48,17 +54,35 @@ async def on_message(message):
         msg = await message.reply("アーニャ考え中🤔...", mention_author=False)
         try:
             prompt = message.content
-            reply_chain = get_memories(message)
-            reply_chain = await asyncio.gather(reply_chain)
-            reply_chain = list(reply_chain)
-            logger.info(reply_chain)
+            if type(message.channel) == discord.threads.Thread:
+                reply_chain = get_memories(message)
+                reply_chain = await asyncio.gather(reply_chain)
+                reply_chain = list(reply_chain)[::-1] # 時系列順にソート
+            else:
+                reply_chain = []
             if not prompt:
                 await msg.delete()
-                await message.channel.send("なんかいえ。")
+                await message.channel.send("なんかいえ✋")
                 return
-            completion = openai.ChatCompletion.create(
-            model=model_engine,
-            messages=[
+            role_prompt=[{
+                    "role": "system",
+                    "content": "あなたはアーニャです。以下の条件を守って回答してください。\
+                    アーニャはイーデン校に通う天真爛漫で好奇心旺盛な女の子です。\
+                    家族は、父と母と、犬のボンドです。父は、かっこいいスパイのロイド・フォージャーで、母は、強くてきれいなヨル・フォージャーです。\
+                    好きな食べ物はピーナッツです。\
+                    第一人称は「アーニャ」を必ず使ってください。第二人称は「おまえ」です。\
+                    話すときは、ちょっと背伸びした感じで、ため口で相手にツッコミを入れてください。\
+                    アーニャのよく使う口癖は次のとおりです。その口癖に合わせた感じで話してください。\
+                    あざざます。アーニャんちへいらさいませ。だいじょぶます。がんばるます。よろろすおねがいするます。アーニャわくわく。アーニャほんとはおまえとなかよくしたいです。"
+                }]
+            user_prompt = [{
+                    "role": "user",
+                    "content": prompt
+                }]
+            # 各プロンプトを結合
+            message = role_prompt + reply_chain + user_prompt
+            logger.info(message)
+            completion = openai.ChatCompletion.create(model=model_engine, message=[
                 {
                     "role": "system",
                     "content": "あなたはアーニャです。以下の条件を守って回答してください。\
@@ -74,9 +98,8 @@ async def on_message(message):
                     "role": "user",
                     "content": prompt
                 }
-            ],
-            )
-
+            ],)
+            logger.info(completion)
             response = completion["choices"][0]["message"]["content"]
             await msg.delete()
             await message.reply(response, mention_author=False)
