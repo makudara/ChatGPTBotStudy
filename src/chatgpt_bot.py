@@ -83,7 +83,6 @@ async def on_message(message):
                 }]
             # 各プロンプトを結合
             messages = role_prompt + reply_chain + user_prompt
-            logger.info(message)
             completion = openai.ChatCompletion.create(model=model_engine, message=messages)
             logger.info(completion)
             response = completion["choices"][0]["message"]["content"]
