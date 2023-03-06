@@ -58,8 +58,8 @@ async def on_message(message):
             if type(message.channel) == discord.threads.Thread:
                 reply_chain = get_memories(message)
                 reply_chain = await asyncio.gather(reply_chain)
-                reply_chain = list(reply_chain)[::-1] # 時系列順にソート
-                reply_chain = reply_chain[:LIMIT_MEMORY] # トークン量を節約
+                reply_chain = reply_chain[0] # 時系列順にソート
+                #reply_chain = reply_chain[:LIMIT_MEMORY] # トークン量を節約
             else:
                 reply_chain = []
             if not prompt:
@@ -83,8 +83,11 @@ async def on_message(message):
                 }]
             # 各プロンプトを結合
             messages = role_prompt + reply_chain + user_prompt
-            completion = openai.ChatCompletion.create(model=model_engine, message=messages)
-            logger.info(completion)
+            logger.info("memory size: "+str(len(messages)))
+            completion = openai.ChatCompletion.create(model=model_engine, messages=messages)
+            total_tokens = completion["usage"]["total_tokens"]
+            cost = total_tokens/1000*0.002
+            logger.info(f'total_tokens: {total_tokens}: ${cost}')
             response = completion["choices"][0]["message"]["content"]
             await msg.delete()
             await message.reply(response, mention_author=False)
