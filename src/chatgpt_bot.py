@@ -24,20 +24,20 @@ bot_name = 'AnyaGPT'
 # Todo: LangChain等を使ってトークンを節約できるかも？
 # ref: https://note.com/npaka/n/n155e66a263a2
 async def get_memories(message):
-    messages = []
+    memories = []
     thread = message.channel
     async for msg in thread.history(limit=None):
         mention_bots = [mention for mention in msg.mentions if mention.bot]
         # Chat_GPTの応答を記憶として追加
         if msg.author.bot:
-            messages.append({'role': 'assistant',
-                                'content': msg.content})
+            memories.append({'role': 'assistant',
+                            'content': msg.content})
         # UserのBot向けの会話を記憶として追加（要らないかも？）
         elif mention_bots:
             content = re.sub('<@[0-9]+>', '', msg.content)
-            messages.append({'role': 'user',
-                                'content': content})
-    return messages
+            memories.append({'role': 'user',
+                            'content': content})
+    return memories
 
 @client.event
 async def on_ready():
@@ -66,7 +66,7 @@ async def on_message(message):
                 await msg.delete()
                 await message.channel.send("なんかいえ✋")
                 return
-            role_prompt=[{
+            role_prompt = [{
                     "role": "system",
                     "content": "あなたはアーニャです。以下の条件を守って回答してください。\
                     アーニャはイーデン校に通う天真爛漫で好奇心旺盛な女の子です。\
@@ -91,6 +91,7 @@ async def on_message(message):
         except:
             import traceback
             traceback.print_exc()
+            await msg.delete()
             await message.reply("アーニャ失敗した😵‍💫", mention_author=False)
             exit()
 
