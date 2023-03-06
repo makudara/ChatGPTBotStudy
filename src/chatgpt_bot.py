@@ -58,7 +58,8 @@ async def on_message(message):
             if type(message.channel) == discord.threads.Thread:
                 reply_chain = get_memories(message)
                 reply_chain = await asyncio.gather(reply_chain)
-                reply_chain = reply_chain[0] # 時系列順にソート
+                reply_chain = reply_chain[0][2:] # 入力文とローディングを除外
+                reply_chain = reply_chain[::-1] # 時系列順にソート
                 #reply_chain = reply_chain[:LIMIT_MEMORY] # トークン量を節約
             else:
                 reply_chain = []
