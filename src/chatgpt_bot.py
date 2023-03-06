@@ -17,6 +17,7 @@ intents.message_content = True
 client = discord.Client(intents=intents)
 token = os.environ['DISCORD_TOKEN']  #Discordのトークン
 openai.api_key = os.environ['OPENAI_API_KEY'] #APIキー
+LIMIT_MEMORY = 10
 model_engine = "gpt-3.5-turbo"
 bot_name = 'AnyaGPT'
 
@@ -58,7 +59,7 @@ async def on_message(message):
                 reply_chain = get_memories(message)
                 reply_chain = await asyncio.gather(reply_chain)
                 reply_chain = list(reply_chain)[::-1] # 時系列順にソート
-                reply_chain = reply_chain[:10] # トークン量を節約
+                reply_chain = reply_chain[:LIMIT_MEMORY] # トークン量を節約
             else:
                 reply_chain = []
             if not prompt:
