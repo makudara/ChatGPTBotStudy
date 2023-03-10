@@ -6,6 +6,8 @@ import logging
 import openai
 import discord
 
+import role_config
+
 logger = logging.getLogger('discord')
 handler = logging.FileHandler(filename='discord.log', encoding='utf-8', mode='w')
 handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
@@ -17,7 +19,7 @@ intents.message_content = True
 client = discord.Client(intents=intents)
 token = os.environ['DISCORD_TOKEN']  #Discordのトークン
 openai.api_key = os.environ['OPENAI_API_KEY'] #APIキー
-LIMIT_MEMORY = 10
+LIMIT_MEMORY = 5
 model_engine = "gpt-3.5-turbo"
 bot_name = 'AnyaGPT'
 
@@ -28,15 +30,14 @@ async def get_memories(message):
     thread = message.channel
     async for msg in thread.history(limit=None):
         mention_bots = [mention for mention in msg.mentions if mention.bot]
-        # Chat_GPTの応答を記憶として追加
+        # Chat_GPTの応答を記憶として追加 (コードとか聞くと長いので試しに停止)
         if msg.author.bot:
-            memories.append({'role': 'assistant',
-                            'content': msg.content})
-        # UserのBot向けの会話を記憶として追加（要らないかも？）
+            pass
+            #memories.append({'role': 'assistant', 'content': msg.content})
+        # UserのBot向けの会話を記憶として追加
         elif mention_bots:
             content = re.sub('<@[0-9]+>', '', msg.content)
-            memories.append({'role': 'user',
-                            'content': content})
+            memories.append({'role': 'user', 'content': content})
     return memories
 
 @client.event
@@ -53,31 +54,31 @@ async def on_message(message):
 
     if client.user in message.mentions:
         msg = await message.reply("アーニャ考え中🤔...", mention_author=False)
+        # スレッドなら記憶を作成
+        if type(message.channel) == discord.threads.Thread:
+            thread = message.channel
+        # スレッドがなければ作成
+        else:
+            channel = message.channel
+            thread_title = re.sub('<@[0-9]+>', '', message.content)
+            thread = await channel.create_thread(name=thread_title, reason="アーニャ返信中", type=discord.ChannelType.public_thread)
         try:
             prompt = message.content
+            # スレッドなら記憶を作成
             if type(message.channel) == discord.threads.Thread:
                 reply_chain = get_memories(message)
                 reply_chain = await asyncio.gather(reply_chain)
                 reply_chain = reply_chain[0][2:] # 入力文とローディングを除外
                 reply_chain = reply_chain[::-1] # 時系列順にソート
-                #reply_chain = reply_chain[:LIMIT_MEMORY] # トークン量を節約
+                reply_chain = reply_chain[:LIMIT_MEMORY] # トークン量を節約
             else:
-                reply_chain = []
+                reply_chain = []  
+                
             if not prompt:
                 await msg.delete()
                 await message.channel.send("なんかいえ✋")
                 return
-            role_prompt = [{
-                    "role": "system",
-                    "content": "あなたはアーニャです。以下の条件を守って回答してください。\
-                    アーニャはイーデン校に通う天真爛漫で好奇心旺盛な女の子です。\
-                    家族は、父と母と、犬のボンドです。父は、かっこいいスパイのロイド・フォージャーで、母は、強くてきれいなヨル・フォージャーです。\
-                    好きな食べ物はピーナッツです。\
-                    第一人称は「アーニャ」を必ず使ってください。第二人称は「おまえ」です。\
-                    話すときは、ちょっと背伸びした感じで、ため口で相手にツッコミを入れてください。\
-                    アーニャのよく使う口癖は次のとおりです。その口癖に合わせた感じで話してください。\
-                    あざざます。アーニャんちへいらさいませ。だいじょぶます。がんばるます。よろろすおねがいするます。アーニャわくわく。アーニャほんとはおまえとなかよくしたいです。"
-                }]
+            role_prompt = [role_config.get_role('Anya')]
             user_prompt = [{
                     "role": "user",
                     "content": prompt
@@ -91,11 +92,12 @@ async def on_message(message):
             logger.info(f'total_tokens: {total_tokens}: ${cost}')
             response = completion["choices"][0]["message"]["content"]
             await msg.delete()
-            await message.reply(response, mention_author=False)
+            await thread.send(response, mention_author=False)
         except:
             import traceback
             traceback.print_exc()
             await msg.delete()
+            await thread.thread_delete()
             await message.reply("アーニャ失敗した😵‍💫", mention_author=False)
             exit()
 
